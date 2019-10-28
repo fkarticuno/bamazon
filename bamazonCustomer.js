@@ -1,84 +1,101 @@
 var mysql = require("mysql");
 var inquirer =require("inquirer");
-
+//  creates horizontal spacer for item organization
+var spacer = "**===========================================================================**";
+//  stores items as objects in an array
+var items = [];
+var prod;
+var quant;
 var connection = mysql.createConnection({
     host: "127.0.0.1",
     port: 3306,
     user: "root",
     password: "password",
     database: "bamazon_db"
-
 });
-
 connection.connect(function(err) {
     if (err) throw err;
-    runSearch();
+    var query = "SELECT item_id, product_name, dept_name, price, stock_quantity FROM products WHERE ?";
+    connection.query(query, { stock_quantity: 5 /*ans.units*/ }, function(err, res) {
+      if (err) throw err;
+      console.log(spacer);
+      for (var i = 0; i < res.length; i++) {
+        console.log("ID:",res[i].item_id + 
+            " || Name:",res[i].product_name + 
+            " || Department:", res[i].dept_name + 
+            " || Price:", res[i].price +
+            " || Quantity:",res[i].stock_quantity);
+        items[i+1] = [
+            id = res[i].item_id ,
+            item = res[i].product_name,
+            dept = res[i].dept_name,
+            cost = res[i].price,
+            qty = res[i].stock_quantity
+        ]
+        };
+        console.log(spacer);
+        //console.log(items) // testing
+      runSearch();
+    });
 });
-
 function runSearch() {
     inquirer
-        .prompt({
+        .prompt([
+            {
             name:"action",
-            type: "list",
-            message: "What is the ID of the product you would like to buy?",
-            choices:["1","2","3","4"],
-
-        }).then(function(ans){
-            switch (ans.action) {
-                case "1":
-                    prod1();
-                    break;
-                case "2":
-                    prod2();
-                    break;
-                case "4":
-                    prod3();
-                    break;
-                case "4":
-                   prod4();
-                    break;
-                case "5":
-                connection.end();
-                break;
+            type: "input",
+            message: "What is the ID of the product you would like to buy?"
+            },
+            {
+            name: "units",
+            type: "input",
+            message: "How many units of the product would you like to buy?"
             }
-        })
-
-};
-function units(prod) {
-    inquirer
-    .prompt({
-      name: "units",
-      type: "input",
-      message: "How many units of the product would you like to buy?"
-    })
-    .then(function(ans) {
-      var query = "SELECT item_id, product_name, dept_name, price FROM products WHERE ?";
-        // {
-        //     artist:ans.artist
-        // }
-      connection.query(query, { stock_quantity: ans.units }, function(err, res) {
-        if (err) throw err;
-
-        for (var i = 0; i < res.length; i++) {
-          console.log("Position: " + res[i].item_id + " || Song: " + res[i].product_name + " || Year: " + res[i].dept_name+ " || Year: " + res[i].price);
-        }
-        console.log("You are purchasing",ans.units,);
+        ])
+        .then(function(ans){
+            prod = parseInt(ans.action);
+            quant = parseInt(ans.units);
+//            console.log(ans); // testing
+            console.log(spacer);
+            console.log("selcted",ans.units) //testing 
+            if (ans.units<= items[ans.action][4]){
+                inquirer
+                .prompt([
+                    {
+                        name: "checkout",
+                        type:"confirm",
+                        message: "You are buying "+ans.units+" "+
+                        items[ans.action][1]+"(s) "+
+                        "for $"+(ans.units * items[ans.action][3])+ 
+                        "\n"+
+                        "Press ENTER for yes or press any key for no" ,
+                        default: true
+                    }
+                ]).then(function(ans){
+                    //console.log(ans.checkout) //testing
+                    if (ans.checkout) {
+                        console.log("Here are your items!");
+                        console.log("prod:",items[prod][0],"quant:",quant)
+                        query =
+"UPDATE LOW_PRIORITY IGNORE products SET stock_quantity = "+
+parseInt(items[prod][4])-parseInt(quant) +" WHERE item_id= " + parseInt(items[prod][0])+ ' "';
+                    connection.query(query, function(err, res) {
+                        if (err) throw err;
+                    });
+                        connection.end();
+                    }
+                    else {
+                        console.log("OK, please make another selection.");
+                        runSearch();
+                    }
+                })
+            console.log();
+            }
+            else{
+                console.log("Sorry we only have",items[ans.action][4],"in stock")
+                runSearch();
+            }
+            })
         
-        runSearch();
-      });
-    });
-};
-
-function prod1() {
-    console.log("prod");
-    units();
-};
-function prod2() {
-    console.log("prod")
-};
-function prod3() {
-    console.log("prod")
-};
-function prod4() {
-    console.log("prod")
+        
 };
