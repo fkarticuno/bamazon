@@ -13,13 +13,15 @@ var connection = mysql.createConnection({
     password: "password",
     database: "bamazon_db"
 });
+
 connection.connect(function(err) {
     if (err) throw err;
-    var query = "SELECT item_id, product_name, dept_name, price, stock_quantity FROM products WHERE ?";
-    connection.query(query, { stock_quantity: 5 /*ans.units*/ }, function(err, res) {
+    var query = "SELECT item_id, product_name, dept_name, price, stock_quantity FROM products";
+    connection.query(query, {}, function(err, res) {
       if (err) throw err;
       console.log(spacer);
       for (var i = 0; i < res.length; i++) {
+
         console.log("ID:",res[i].item_id + 
             " || Name:",res[i].product_name + 
             " || Department:", res[i].dept_name + 
@@ -35,10 +37,10 @@ connection.connect(function(err) {
         };
         console.log(spacer);
         //console.log(items) // testing
-      runSearch();
+      runSearch(res);
     });
 });
-function runSearch() {
+function runSearch(res) {
     inquirer
         .prompt([
             {
@@ -57,7 +59,7 @@ function runSearch() {
             quant = parseInt(ans.units);
 //            console.log(ans); // testing
             console.log(spacer);
-            console.log("selcted",ans.units) //testing 
+            console.log("selected",ans.units) //testing 
             if (ans.units<= items[ans.action][4]){
                 inquirer
                 .prompt([
@@ -75,13 +77,12 @@ function runSearch() {
                     //console.log(ans.checkout) //testing
                     if (ans.checkout) {
                         console.log("Here are your items!");
-                        console.log("prod:",items[prod][0],"quant:",quant)
-                        query =
-"UPDATE LOW_PRIORITY IGNORE products SET stock_quantity = "+
-parseInt(items[prod][4])-parseInt(quant) +" WHERE item_id= " + parseInt(items[prod][0])+ ' "';
-                    connection.query(query, function(err, res) {
-                        if (err) throw err;
-                    });
+                        console.log("prod:",items[prod][0],"quant:",quant);
+                        query =connection.query("UPDATE products SET stock_quantity = stock_quantity - ? WHERE item_id = ?",
+                        [quant,items[prod][0]],
+                        function(err, res){
+                            if (err) throw err;
+                        })
                         connection.end();
                     }
                     else {
